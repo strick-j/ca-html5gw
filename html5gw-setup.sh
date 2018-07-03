@@ -2,7 +2,7 @@
 
 function main(){
 	system_prep
-	install_tomcat
+ 	install_tomcat
 	firewall_config
 	install_psmgw
 	update_guacd_config
@@ -100,7 +100,8 @@ firewall_config(){
 install_psmgw(){
 	print_info 'Installing PSMGW'
 	cp psmgwparms /var/tmp/psmgwparms
-	rpm -ivh CARKpsmgw-10.03.0.5.el7.x86_64.rpm >> html5gw.log 2>&1
+	psmgwrpm=`ls $dir | grep CARKpsmgw*`
+	rpm -ivh $psmgwrpm >> html5gw.log 2>&1
 	print_success 'PSMGW Installed'
 }
 
