@@ -56,9 +56,9 @@ install_tomcat(){
 	sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat >> html5gw.log
 
 	# Extract tomcat contents
-	print_info 'Downloading and install Apache Tomcat 8.0.52'
-	wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.52/bin/apache-tomcat-8.0.52.tar.gz >> html5gw.log 2>&1
-	tar -xzvf apache-tomcat-8.0.52.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
+	print_info 'Downloading and install Apache Tomcat 8.0.53'
+	wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.53/bin/apache-tomcat-8.0.53.tar.gz >> html5gw.log 2>&1
+	tar -xzvf apache-tomcat-8.0.53.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
 
 	# Set Tomcat Permissions
 	print_info 'Setting Tomcat folder permissions'
