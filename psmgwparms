@@ -1,0 +1,25 @@
+# -------------------------------------------------------
+# Whether or not you accept all the terms of the PSM Gateway end user license agreement. 
+# This agreement is on the installation CD in the PSM Gateway installation package. 
+# Open this agreement and read it carefully, then set this parameter to Yes.
+# This parameter is required
+# -------------------------------------------------------
+AcceptCyberArkEULA=Yes
+
+# --------------------------------------------------------------------------------
+# Whether or not the machine hardening settings will be applied.
+# --------------------------------------------------------------------------------
+Hardening=Yes
+
+# -------------------------------------------------------
+# Full path to the webapps folder to place the PSM Gateway webapp and configure it
+# This parameter is required 
+# -------------------------------------------------------
+WebAppsDir=/opt/tomcat/webapps
+
+# -------------------------------------------------------
+# Used web application server user and group on the system, to give the fitting permissions to the webapp
+# This parameter is optional, defaulted to tomcat on both
+# -------------------------------------------------------
+WebApplicationServerUser=tomcat 
+WebApplicationServerGroup=tomcat 
