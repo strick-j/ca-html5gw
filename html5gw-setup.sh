@@ -50,13 +50,14 @@ system_prep(){
 }
 
 install_tomcat(){
-	print_info 'Installing Apache Tomcat 8.0.52'
+	print_info 'Setting up Apache Tomcat user'
 	# Setup Tomcat User
 	groupadd tomcat
-	#mkdir /opt/tomcat
 	sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat >> html5gw.log
 
 	# Extract tomcat contents
+	print_info 'Downloading and install Apache Tomcat 8.0.52'
+	wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.52/bin/apache-tomcat-8.0.52.tar.gz >> html5gw.log 2>&1
 	tar -xzvf apache-tomcat-8.0.52.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
 
 	# Set Tomcat Permissions
@@ -81,10 +82,8 @@ install_tomcat(){
 	# Configure Tomcat Self Signed Certificate
 	print_info 'Creating Tomcat Self Signed Certificate'
 	mkdir /opt/secrets
-	pushd /opt/secrets
-	keytool -genkeypair -alias psmgw -keyalg RSA -keystore ./keystore -ext san=dns:html5gw2.cyberarkdemo.com -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=psmgw.cyberarkdemo.com, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
-	popd
-
+	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:html5gw2.cyberarkdemo.com -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=psmgw.cyberarkdemo.com, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
+	
 	# Copy over the existing Tomcat Server Configuration file
 	cp server.xml /opt/tomcat/conf/server.xml
 	print_success 'Apache Tomcat installed and configured'
