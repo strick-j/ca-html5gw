@@ -2,7 +2,7 @@
 
 function main(){
 	system_prep
- 	install_tomcat
+	install_tomcat
 	firewall_config
 	install_psmgw
 	update_guacd_config
@@ -28,6 +28,7 @@ print_error(){
 	red=`tput setaf 1`
 	reset=`tput sgr0`
 	echo "${red}ERROR: $1${reset}"
+	echo "ERROR: $1" >> html5gw.log
 }
 
 pushd () {
@@ -43,25 +44,54 @@ system_prep(){
 	touch html5gw.log
 	yum clean all >> html5gw.log
 	echo "Log file generated on $(date)" >> html5gw.log
-	print_info 'Installing updates - This may take a while'
-	#yum update -y >> html5gw.log
-	yum install cairo libjpg libpng wget java-1.8.0-openjdk -y >> html5gw.log
-	print_success 'Installed updates'
+	print_info "Installing New Packages - This may take some time"
+	pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk)
+	for pkg in  ${pkgarray[@]}
+	do
+	pkg="$pkg"
+    	yum list $pkg > /dev/null
+        	if [ $? -eq 0 ]
+        	then
+                	print_info "Installing $pkg"
+                	yum -y install $pkg >> html5gw.log 2>&1
+                	yum list $pkg > /dev/null
+                        # Check if packages installed correctly, if not - Exit
+			if [ $? -eq 0 ]
+                        then
+                                print_success "$pkg installed."
+                        else
+                                print_error "$pkg could not be installed. Exiting...."
+                        	exit 1
+			fi
+        	else
+                	print_error "Required package - $pkg - not found. Exiting..."
+			exit 1
+        	fi
+	done
+	print_success "Required packages installed."
 }
 
 install_tomcat(){
-	print_info 'Setting up Apache Tomcat user'
+	print_info "Setting up Apache Tomcat user"
 	# Setup Tomcat User
 	groupadd tomcat
 	sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat >> html5gw.log
 
 	# Extract tomcat contents
-	print_info 'Downloading and install Apache Tomcat 8.0.53'
+	print_info "Downloading Apache Tomcat 8.0.53"
 	wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.53/bin/apache-tomcat-8.0.53.tar.gz >> html5gw.log 2>&1
-	tar -xzvf apache-tomcat-8.0.53.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
-
+	# Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
+	if [ -f $PWD/apache* ];
+	then
+        	print_info "Download succesfull - Installing Now"
+		tar -xzvf apache-tomcat-8.0.53.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
+	else
+        	print_error "Apache Tomcat could not be downloaded. Exiting now..."
+		exit 1
+	fi
+	
 	# Set Tomcat Permissions
-	print_info 'Setting Tomcat folder permissions'
+	print_info "Setting Tomcat folder permissions"
 	pushd /opt/tomcat
 	sudo chgrp -R tomcat conf
 	sudo chmod g+rwx conf
@@ -74,51 +104,58 @@ install_tomcat(){
 	popd
 	
 	# Create and enable Tomcat Service
-	print_info 'Creating Tomcat Service'
+	print_info "Creating Tomcat Service"
 	cp tomcat.service /etc/systemd/system/tomcat.service >> html5gw.log
 	systemctl daemon-reload >> html5gw.log
 	systemctl enable tomcat >> html5gw.log 2>&1
 	
 	# Configure Tomcat Self Signed Certificate
-	print_info 'Creating Tomcat Self Signed Certificate'
+	print_info "Creating Tomcat Self Signed Certificate"
 	mkdir /opt/secrets
 	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:html5gw2.cyberarkdemo.com -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=psmgw.cyberarkdemo.com, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
 	
 	# Copy over the existing Tomcat Server Configuration file
 	cp server.xml /opt/tomcat/conf/server.xml
-	print_success 'Apache Tomcat installed and configured'
+	print_success "Apache Tomcat installed and configured"
 }
 
 firewall_config(){
-	print_info 'configuring Firewall for PSMGW'
+	print_info "configuring Firewall for PSMGW"
 	firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
 	firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
 	firewall-cmd --reload >> html5gw.log
-	print_success 'Firewall configured'
+	print_success "Firewall configured"
 }
 
 install_psmgw(){
-	print_info 'Installing PSMGW'
+	print_info "Verifying PSMGW has been placed within the repository"
 	cp psmgwparms /var/tmp/psmgwparms
-	psmgwrpm=`ls $dir | grep CARKpsmgw*`
-	rpm -ivh $psmgwrpm >> html5gw.log 2>&1
-	print_success 'PSMGW Installed'
+	# Check if required CyberArk files have been copied into the folder
+	if [ -f $PWD/CARKpsmgw* ]; then
+        	print_info "PSMGW file found, Installing now"
+		cp psmgwparms /var/tmp/psmgwparms
+		psmgwrpm=`ls $dir | grep CARKpsmgw*`
+		rpm -ivh $psmgwrpm >> html5gw.log 2>&1
+	else
+        	print_error "CyberArk PSMGW file not in repository. Exiting now..."
+	fi
+	print_success "PSMGW Installed"
 }
 
 update_guacd_config(){
-	print_info 'Updating Guacamole Configuration File'
+	print_info "Updating Guacamole Configuration File"
 	cp /etc/guacamole/guacd.conf /etc/guacamole/guacd.old
 	sed -i 's+# \[ssl\]+\[ssl\]+g' /etc/guacamole/guacd.conf
 	sed -i 's+# server_cert.*+server_certificate\ \=\ \/opt\/secrets\/cert\.crt+g' /etc/guacamole/guacd.conf
 	sed -i 's+# server_key.*+server_key\ \=\ \/opt\/secrets\/key\.pem+g' /etc/guacamole/guacd.conf
-	print_success 'Completed guacamole configure file modifications'
+	print_success "Completed guacamole configure file modifications"
 }
 
 generate_guacd_certs(){
-	print_info 'Generating self signed certificates for Guacamole'
+	print_info "Generating self signed certificates for Guacamole"
 	openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout /opt/secrets/key.pem -out /opt/secrets/cert.crt -config guac-ssl.cnf > /dev/null 2>&1
 	keytool -import -alias psmgw_guacd_cert -keystore /opt/secrets/keystore -trustcacerts -file /opt/secrets/cert.crt -storepass "Cyberark1" -noprompt >> html5gw.log 2>&1
-	print_success 'Guacamole certificates generated and imported into Apache Keystore' 
+	print_success "Guacamole certificates generated and imported into Apache Keystore" 
 	
 	# Import guacd certs into the Java key store
 	testpath=`readlink -f /usr/bin/java | sed "s:bin/java::"`
@@ -126,9 +163,9 @@ generate_guacd_certs(){
 }
 
 restart_services(){
-	print_info 'Restarting Tomact and Guacamole'
+	print_info "Restarting Tomact and Guacamole"
 	systemctl restart tomcat >> html5gw.log
 	service guacd restart >> html5gw.log 2>&1
-	print_success 'Services Started Successfully'
+	print_success "Services Started Successfully"
 }
 main
