@@ -1,6 +1,10 @@
 # ca-html5gw
 Script to automate the setup of CyberArk's HTML5 Web Gateway.
 
+<p align="center">
+    <img src="https://cdn.rawgit.com/strick-j/ca-html5gw/94fa5f69/examples/html5install.svg">
+</p>
+
 # Installation
 Intended for installation on an updated minimal CentOS 7 Server. General install instructions:
 1. Clone or download the git repository
