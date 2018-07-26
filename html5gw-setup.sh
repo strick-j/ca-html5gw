@@ -10,20 +10,28 @@ function main(){
 	restart_services
 }
 
+# Generic output functions
+print_head(){
+	white=`tput setaf 7`
+	reset=`tput sgr0`
+	echo ""
+	echo "======================================================"
+	echo "${white}$1${reset}"
+	echo "======================================================"
+	echo ""
+}
 print_info(){
 	white=`tput setaf 7`
 	reset=`tput sgr0`
 	echo "${white}INFO: $1${reset}"
 	echo "INFO: $1" >> html5gw.log
 }
-
 print_success(){
 	green=`tput setaf 2`
 	reset=`tput sgr0`
 	echo "${green}SUCCESS: $1${reset}"
 	echo "SUCCESS: $1" >> html5gw.log
 }
-
 print_error(){
 	red=`tput setaf 1`
 	reset=`tput sgr0`
@@ -40,7 +48,7 @@ popd () {
 }
 
 system_prep(){
-	# Install system updates and required prerequisite packages
+	print_head "Step 1: Installing system updates and required prerequisite packages"
 	touch html5gw.log
 	yum clean all >> html5gw.log
 	echo "Log file generated on $(date)" >> html5gw.log
@@ -72,6 +80,7 @@ system_prep(){
 }
 
 install_tomcat(){
+	print_head "Step 2: Installing and configuring Apache Tomcat"
 	print_info "Setting up Apache Tomcat user"
 	# Setup Tomcat User
 	groupadd tomcat
@@ -120,6 +129,7 @@ install_tomcat(){
 }
 
 firewall_config(){
+	print_head "Step 3: Configuring firewall"
 	print_info "configuring Firewall for PSMGW"
 	firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
 	firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
@@ -128,6 +138,7 @@ firewall_config(){
 }
 
 install_psmgw(){
+	print_head "Step 4: Installing and configuring HTML5 PSMGW"
 	print_info "Verifying PSMGW has been placed within the repository"
 	cp psmgwparms /var/tmp/psmgwparms
 	# Check if required CyberArk files have been copied into the folder
