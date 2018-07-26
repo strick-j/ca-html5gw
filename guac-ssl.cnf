@@ -16,23 +16,16 @@ req_extensions     = v3_req
 # distinguished_name
 [ req_distinguished_name ]
 countryName            = "US"                     # C=
-stateOrProvinceName    = "Virgnia"                # ST=
-localityName           = "Alexandria"             # L=
-#postalCode            = "NA"                  # L/postalcode=
-#streetAddress         = "NA"                     # L/street=
-organizationName       = "POC"	                  # O=
-organizationalUnitName = "POC"                    # OU=
+stateOrProvinceName    = "test"                   # ST=
+localityName           = "test"	                  # L=
+organizationName       = "test"	                  # O=
+organizationalUnitName = "test"                   # OU=
 commonName             = "test.host.local"        # CN=
-#emailAddress          = "POC@host.local"
 
 # req_extensions
 [ v3_req ]
-# The subject alternative name extension allows various literal values to be 
-# included in the configuration file
-# http://www.openssl.org/docs/apps/x509v3_config.html
 subjectAltName = @alt_names
 
 [ alt_names ]
 DNS.0 = test.host.local
 DNS.1 = test
-#IP. = 192.168.10.1

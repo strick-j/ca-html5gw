@@ -1,10 +1,10 @@
 #!/bin/bash
 
 function main(){
-	system_prep
-	install_tomcat
-	firewall_config
-	install_psmgw
+#	system_prep
+#	install_tomcat
+#	firewall_config
+#	install_psmgw
 	update_guacd_config
 	generate_guacd_certs
 	restart_services
@@ -121,7 +121,7 @@ install_tomcat(){
 	# Configure Tomcat Self Signed Certificate
 	print_info "Creating Tomcat Self Signed Certificate"
 	mkdir /opt/secrets
-	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:html5gw2.cyberarkdemo.com -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=psmgw.cyberarkdemo.com, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
+	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:host.test.local -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=host.test.local, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
 	
 	# Copy over the existing Tomcat Server Configuration file
 	cp server.xml /opt/tomcat/conf/server.xml
@@ -174,9 +174,27 @@ generate_guacd_certs(){
 }
 
 restart_services(){
-	print_info "Restarting Tomact and Guacamole"
+	print_info "Restarting Tomcat and Guacamole"
 	systemctl restart tomcat >> html5gw.log
 	service guacd restart >> html5gw.log 2>&1
-	print_success "Services Started Successfully"
+
+	# Test if services started properly
+	print_info "Checking on status of Tomcat Service"
+	local tomcatservice=tomcat
+	if [[ $(ps -ef | grep -v grep | grep $tomcatservice | wc -l) > 0 ]]
+	then
+		print_success "$tomcatservice is running!"
+	else
+		print_error "$tomcatservice is not running, please review tomcat logs."
+	fi
+
+	print_info "Checking on status of Guacamole Service"
+	local guacservice=guacd
+	if [[ $(ps -ef | grep -v grep | grep $guacservice | wc -l) > 0 ]]
+	then
+		print_success "$guacservice is running!"
+	else
+		print_error "$guacservice is not running, please review guacd status and logs."
+	fi
 }
 main
