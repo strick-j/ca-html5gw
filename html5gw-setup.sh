@@ -1,10 +1,10 @@
 #!/bin/bash
 
 function main(){
-#	system_prep
-#	install_tomcat
-#	firewall_config
-#	install_psmgw
+	system_prep
+	install_tomcat
+	firewall_config
+	install_psmgw
 	update_guacd_config
 	generate_guacd_certs
 	restart_services
