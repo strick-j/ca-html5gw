@@ -1,15 +1,15 @@
 #!/bin/bash
 
 function main(){
-#	system_prep
+	system_prep
 	gather_info
- # install_tomcat
-#	firewall_config
-#	install_psmgw
-#	update_guacd_config
+  install_tomcat
+	firewall_config
+	install_psmgw
+	update_guacd_config
   update_guacssl_config
-#	generate_guacd_certs
-#	restart_services
+	generate_guacd_certs
+	restart_services
 }
 
 # Generic output functions
@@ -60,16 +60,14 @@ system_prep(){
 	do
 	pkg="$pkg"
   	yum list $pkg > /dev/null
-     	if [ $? -eq 0 ]
-      then
+     	if [[ $? -eq 0 ]]; then
        	print_info "Installing $pkg"
         yum -y install $pkg >> html5gw.log 2>&1
         yum list $pkg > /dev/null
         # Check if packages installed correctly, if not - Exit
-			  if [ $? -eq 0 ]
-        then
+			  if [[ $? -eq 0 ]]; then
           print_success "$pkg installed."
-         else
+        else
           print_error "$pkg could not be installed. Exiting...."
           exit 1
         fi
@@ -92,8 +90,7 @@ gather_info(){
         No ) echo ""; break;; 
       esac
     done
-    if [ "$done" -ne 0 ]
-    then
+    if [[ "$done" -ne 0 ]]; then
       break
     fi
   done
