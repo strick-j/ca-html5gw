@@ -28,4 +28,3 @@ subjectAltName = @alt_names
 
 [ alt_names ]
 DNS.0 = test.host.local
-DNS.1 = test
