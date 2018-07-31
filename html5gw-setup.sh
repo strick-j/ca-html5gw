@@ -187,9 +187,7 @@ update_guacssl_config(){
 
 generate_guacd_certs(){
   print_info "Generating self signed certificates for Guacamole"
-  openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout
-  /opt/secrets/key.pem -out /opt/secrets/cert.crt -config guac-ssl.cnf
-  > /dev/null 2>&1
+  openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout /opt/secrets/key.pem -out /opt/secrets/cert.crt -config guac-ssl.cnf > /dev/null 2>&1
   keytool -import -alias psmgw_guacd_cert -keystore /opt/secrets/keystore -trustcacerts -file /opt/secrets/cert.crt -storepass "Cyberark1" -noprompt >> html5gw.log 2>&1
   print_success "Guacamole certificates generated and imported into Apache Keystore" 
 	
