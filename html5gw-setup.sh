@@ -164,6 +164,7 @@ install_psmgw(){
     rpm -ivh $psmgwrpm >> html5gw.log 2>&1
   else
     print_error "CyberArk PSMGW file not in repository. Exiting now..."
+    exit 1
   fi
   print_success "PSMGW Installed"
 }
