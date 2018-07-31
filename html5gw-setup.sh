@@ -17,9 +17,9 @@ print_head(){
   white=`tput setaf 7`
   reset=`tput sgr0`
   echo ""
-  echo "======================================================"
+  echo "==========================================================================="
   echo "${white}$1${reset}"
-  echo "======================================================"
+  echo "==========================================================================="
   echo ""
 }
 print_info(){
@@ -104,9 +104,7 @@ install_tomcat(){
   
   # Extract tomcat contents
   print_info "Downloading Apache Tomcat 8.0.53"
-  wget
-  http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.53/bin/apache-tomcat-8.0.53.tar.gz
-  >> html5gw.log 2>&1
+  wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.53/bin/apache-tomcat-8.0.53.tar.gz >> html5gw.log 2>&1
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
   if [ -f $PWD/apache* ]; then
     print_info "Download succesfull - Installing Now"
