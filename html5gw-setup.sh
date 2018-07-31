@@ -1,13 +1,15 @@
 #!/bin/bash
 
 function main(){
-	system_prep
-	install_tomcat
-	firewall_config
-	install_psmgw
-	update_guacd_config
-	generate_guacd_certs
-	restart_services
+#	system_prep
+	gather_info
+ # install_tomcat
+#	firewall_config
+#	install_psmgw
+#	update_guacd_config
+  update_guacssl_config
+#	generate_guacd_certs
+#	restart_services
 }
 
 # Generic output functions
@@ -40,11 +42,11 @@ print_error(){
 }
 
 pushd () {
-    command pushd "$@" > /dev/null
+  command pushd "$@" > /dev/null
 }
 
 popd () {
-    command popd "$@" > /dev/null
+  command popd "$@" > /dev/null
 }
 
 system_prep(){
@@ -57,28 +59,45 @@ system_prep(){
 	for pkg in  ${pkgarray[@]}
 	do
 	pkg="$pkg"
-    	yum list $pkg > /dev/null
-        	if [ $? -eq 0 ]
-        	then
-                	print_info "Installing $pkg"
-                	yum -y install $pkg >> html5gw.log 2>&1
-                	yum list $pkg > /dev/null
-                        # Check if packages installed correctly, if not - Exit
-			if [ $? -eq 0 ]
-                        then
-                                print_success "$pkg installed."
-                        else
-                                print_error "$pkg could not be installed. Exiting...."
-                        	exit 1
-			fi
-        	else
-                	print_error "Required package - $pkg - not found. Exiting..."
-			exit 1
-        	fi
+  	yum list $pkg > /dev/null
+     	if [ $? -eq 0 ]
+      then
+       	print_info "Installing $pkg"
+        yum -y install $pkg >> html5gw.log 2>&1
+        yum list $pkg > /dev/null
+        # Check if packages installed correctly, if not - Exit
+			  if [ $? -eq 0 ]
+        then
+          print_success "$pkg installed."
+         else
+          print_error "$pkg could not be installed. Exiting...."
+          exit 1
+        fi
+      else
+        print_error "Required package - $pkg - not found. Exiting..."
+        exit 1
+      fi
 	done
 	print_success "Required packages installed."
 }
-
+gather_info(){
+  print_head "Step 2: Collecting user provided information"
+  done=0
+  while : ; do
+    read -p 'Please enter fully qualified domain name or hostname: ' hostvar
+    print_info "You entered $hostvar, is this correct (Yes or No)? "
+    select yn in "Yes" "No"; do
+      case $yn in 
+        Yes ) done=1; break;;
+        No ) echo ""; break;; 
+      esac
+    done
+    if [ "$done" -ne 0 ]
+    then
+      break
+    fi
+  done
+}
 install_tomcat(){
 	print_head "Step 2: Installing and configuring Apache Tomcat"
 	print_info "Setting up Apache Tomcat user"
@@ -90,12 +109,11 @@ install_tomcat(){
 	print_info "Downloading Apache Tomcat 8.0.53"
 	wget http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0.53/bin/apache-tomcat-8.0.53.tar.gz >> html5gw.log 2>&1
 	# Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
-	if [ -f $PWD/apache* ];
-	then
-        	print_info "Download succesfull - Installing Now"
+	if [[ -f $PWD/apache* ]]; then
+    print_info "Download succesfull - Installing Now"
 		tar -xzvf apache-tomcat-8.0.53.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
 	else
-        	print_error "Apache Tomcat could not be downloaded. Exiting now..."
+    print_error "Apache Tomcat could not be downloaded. Exiting now..."
 		exit 1
 	fi
 	
@@ -121,7 +139,7 @@ install_tomcat(){
 	# Configure Tomcat Self Signed Certificate
 	print_info "Creating Tomcat Self Signed Certificate"
 	mkdir /opt/secrets
-	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:host.test.local -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=host.test.local, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
+	keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:$hostvar -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=$hostvar, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
 	
 	# Copy over the existing Tomcat Server Configuration file
 	cp server.xml /opt/tomcat/conf/server.xml
@@ -142,8 +160,8 @@ install_psmgw(){
 	print_info "Verifying PSMGW has been placed within the repository"
 	cp psmgwparms /var/tmp/psmgwparms
 	# Check if required CyberArk files have been copied into the folder
-	if [ -f $PWD/CARKpsmgw* ]; then
-        	print_info "PSMGW file found, Installing now"
+	if [[ -f $PWD/CARKpsmgw* ]]; then
+    print_info "PSMGW file found, Installing now"
 		cp psmgwparms /var/tmp/psmgwparms
 		psmgwrpm=`ls $dir | grep CARKpsmgw*`
 		rpm -ivh $psmgwrpm >> html5gw.log 2>&1
@@ -160,6 +178,13 @@ update_guacd_config(){
 	sed -i 's+# server_cert.*+server_certificate\ \=\ \/opt\/secrets\/cert\.crt+g' /etc/guacamole/guacd.conf
 	sed -i 's+# server_key.*+server_key\ \=\ \/opt\/secrets\/key\.pem+g' /etc/guacamole/guacd.conf
 	print_success "Completed guacamole configure file modifications"
+}
+
+update_guacssl_config(){
+  print_info "Updating guacamole SSL configuration file"
+  cp $PWD/guac-ssl.cnf $PWD/guac-ssl.cnf.old
+  sed -i "s+test.host.local+$hostvar+g" $PWD/guac-ssl.cnf
+  print_success "Completed guacamole SSL configure file modifications"
 }
 
 generate_guacd_certs(){
