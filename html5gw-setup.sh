@@ -138,9 +138,7 @@ install_tomcat(){
   # Configure Tomcat Self Signed Certificate
   print_info "Creating Tomcat Self Signed Certificate"
   mkdir /opt/secrets
-  keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore
-  -ext san=dns:$hostvar -keypass "Cyberark1" -storepass "Cyberark1" -dname
-  "cn=$hostvar, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
+  keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:$hostvar -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=$hostvar, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
 	
   # Copy over the existing Tomcat Server Configuration file
   cp server.xml /opt/tomcat/conf/server.xml
@@ -193,16 +191,12 @@ generate_guacd_certs(){
   openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout
   /opt/secrets/key.pem -out /opt/secrets/cert.crt -config guac-ssl.cnf
   > /dev/null 2>&1
-  keytool -import -alias psmgw_guacd_cert -keystore /opt/secrets/keystore
-  -trustcacerts -file /opt/secrets/cert.crt -storepass "Cyberark1" -noprompt >>
-  html5gw.log 2>&1
+  keytool -import -alias psmgw_guacd_cert -keystore /opt/secrets/keystore -trustcacerts -file /opt/secrets/cert.crt -storepass "Cyberark1" -noprompt >> html5gw.log 2>&1
   print_success "Guacamole certificates generated and imported into Apache Keystore" 
 	
 	# Import guacd certs into the Java key store
   testpath=`readlink -f /usr/bin/java | sed "s:bin/java::"`
-  keytool -import -alias psmgw_guacd_cert -keystore
-  $testpath/lib/security/cacerts -trustcacerts -file /opt/secrets/cert.crt
-  -storepass "changeit" -noprompt >> html5gw.log 2>&1
+  keytool -import -alias psmgw_guacd_cert -keystore $testpath/lib/security/cacerts -trustcacerts -file /opt/secrets/cert.crt -storepass "changeit" -noprompt >> html5gw.log 2>&1
 }
 
 restart_services(){
