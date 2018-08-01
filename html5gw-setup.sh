@@ -149,6 +149,40 @@ firewall_config(){
   firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
   firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
   firewall-cmd --reload >> html5gw.log
+  
+  print_info "Verifying firewall is running"
+  local firewalldservice=firewalld
+  if [[ $(ps -ef | grep -v grep | grep $firewalldservice | wc -l) > 0 ]]; then
+    print_success "$firewalldservice is running"
+  else
+    print_error "$firewalldservice is not running, exiting now..."
+    exit 1
+  fi
+  
+  print_info "Gathering active firewall zone information"
+  firewall-cmd --get-active-zones >> html5gw.log
+  verfirewallcmd=$(tail -2 html5gw.log | head -1)
+  
+  print_info "Active zone is "$verfirewallcmd", gathering forward port information"
+  firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
+  rule1=$(tail -2 html5gw.log | head -1)
+  rule2=$(tail -1 html5gw.log)
+  
+  print_info "Verifying forward ports are correct"
+  if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
+    print_success "Port 443 Port Forwarding is correct"
+  else
+    print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
+    exit 1
+  fi
+  
+  if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
+    print_success "Port 80 Port Forwarding is correct"
+  else
+    print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
+    exit 1
+  fi
+  
   print_success "Firewall configured"
 }
 
