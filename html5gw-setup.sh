@@ -96,7 +96,7 @@ gather_info(){
   done
 }
 install_tomcat(){
-  print_head "Step 2: Installing and configuring Apache Tomcat"
+  print_head "Step 3: Installing and configuring Apache Tomcat"
   print_info "Setting up Apache Tomcat user"
   # Setup Tomcat User
   groupadd tomcat
@@ -144,7 +144,7 @@ install_tomcat(){
 }
 
 firewall_config(){
-  print_head "Step 3: Configuring firewall"
+  print_head "Step 4: Configuring firewall"
   print_info "configuring Firewall for PSMGW"
   firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
   firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
@@ -153,7 +153,7 @@ firewall_config(){
 }
 
 install_psmgw(){
-  print_head "Step 4: Installing and configuring HTML5 PSMGW"
+  print_head "Step 5: Installing and configuring HTML5 PSMGW"
   print_info "Verifying PSMGW has been placed within the repository"
   cp psmgwparms /var/tmp/psmgwparms
   # Check if required CyberArk files have been copied into the folder
