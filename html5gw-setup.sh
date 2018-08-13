@@ -40,11 +40,31 @@ print_error(){
   echo "${red}ERROR: $1${reset}"
   echo "ERROR: $1" >> html5gw.log
 }
+testkey(){
+  # Function to list certificates in the keystore and verify keytool imports
+  # List keytool and export to file
+  print_info "Checking $1 keystore for $2 alias"
+  keytool -list -v -keystore $1 -alias $2 -storepass $3 >> temp.log 2>&1
 
+  # Read in first line from file
+  line=$(head -n 1 temp.log)
+  verify="Alias name: $2"
+
+  # Compare log file and expected key alias
+  if [[ $line == $verify ]]; then
+    print_success "$2 successfully imported into $1 keystore"
+  else
+    print_error "$2 not present in $1 keystore. Exiting now..."
+    exit 1
+  fi
+ 
+  # Concatenate temp log and cleanup
+  cat temp.log >> html5gw.log
+  rm temp.log
+}
 pushd () {
   command pushd "$@" > /dev/null
 }
-
 popd () {
   command popd "$@" > /dev/null
 }
@@ -150,6 +170,9 @@ install_tomcat(){
   mkdir /opt/secrets
   keytool -genkeypair -alias psmgw -keyalg RSA -keystore /opt/secrets/keystore -ext san=dns:$hostvar -keypass "Cyberark1" -storepass "Cyberark1" -dname "cn=$hostvar, ou=POC, o=POC, c=US" >> html5gw.log 2>&1
 	
+  # Verify Keytool Import was successful
+  testkey "/opt/secrets/keystore" "psmgw" "Cyberark1"
+
   # Copy over the existing Tomcat Server Configuration file
   cp server.xml /opt/tomcat/conf/server.xml
   print_success "Apache Tomcat installed and configured"
@@ -235,11 +258,16 @@ generate_guacd_certs(){
   print_info "Generating self signed certificates for Guacamole"
   openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout /opt/secrets/key.pem -out /opt/secrets/cert.crt -config guac-ssl.cnf > /dev/null 2>&1
   keytool -import -alias psmgw_guacd_cert -keystore /opt/secrets/keystore -trustcacerts -file /opt/secrets/cert.crt -storepass "Cyberark1" -noprompt >> html5gw.log 2>&1
-  print_success "Guacamole certificates generated and imported into Apache Keystore" 
+  # Verify Keytool Import was successful
+  testkey "/opt/secrets/keystore" "psmgw_guacd_cert" "Cyberark1"
+  print_success "Guacamole certificates imported into Apache Keystore" 
 	
-	# Import guacd certs into the Java key store
+  # Import guacd certs into the Java key store
   testpath=`readlink -f /usr/bin/java | sed "s:bin/java::"`
   keytool -import -alias psmgw_guacd_cert -keystore $testpath/lib/security/cacerts -trustcacerts -file /opt/secrets/cert.crt -storepass "changeit" -noprompt >> html5gw.log 2>&1
+  # Verify Keytool Import was successful
+  testkey "$testpath/lib/security/cacerts" "psmgw_guacd_cert" "changeit"
+  print_success "Guacamole certificates imported into Java Keystore"
 }
 
 restart_services(){
