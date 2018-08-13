@@ -262,7 +262,7 @@ generate_guacd_certs(){
   testkey "/opt/secrets/keystore" "psmgw_guacd_cert" "Cyberark1"
   print_success "Guacamole certificates imported into Apache Keystore" 
 	
-	# Import guacd certs into the Java key store
+  # Import guacd certs into the Java key store
   testpath=`readlink -f /usr/bin/java | sed "s:bin/java::"`
   keytool -import -alias psmgw_guacd_cert -keystore $testpath/lib/security/cacerts -trustcacerts -file /opt/secrets/cert.crt -storepass "changeit" -noprompt >> html5gw.log 2>&1
   # Verify Keytool Import was successful
