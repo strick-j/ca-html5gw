@@ -44,7 +44,7 @@ testkey(){
   # Function to list certificates in the keystore and verify keytool imports
   # List keytool and export to file
   print_info "Checking $1 keystore for $2 alias"
-  keytool -list -v -keystore $1 -alias $2 -storepass $3 >> temp.log 2>&1
+  keytool -list -v -keystore $1 -alias $2 -storepass $3 > temp.log 2>&1
 
   # Read in first line from file
   line=$(head -n 1 temp.log)
