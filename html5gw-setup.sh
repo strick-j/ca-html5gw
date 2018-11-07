@@ -172,6 +172,10 @@ install_tomcat(){
 	
   # Verify Keytool Import was successful
   testkey "/opt/secrets/keystore" "psmgw" "Cyberark1"
+  
+  # Export certificate in .cer format
+  print_info "Exporting Tomcat Certificate from Keystore"
+  keytool -export -keystore /opt/secrets/keystore -alias psmgw -file tomcat.cer >> html5gw.log 2>&1
 
   # Copy over the existing Tomcat Server Configuration file
   cp server.xml /opt/tomcat/conf/server.xml
