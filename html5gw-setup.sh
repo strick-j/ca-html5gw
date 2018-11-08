@@ -14,8 +14,8 @@ function main(){
 
 # Generic output functions
 print_head(){
-  white=`tput setaf 7`
-  reset=`tput sgr0`
+  local white=`tput setaf 7`
+  local reset=`tput sgr0`
   echo ""
   echo "==========================================================================="
   echo "${white}$1${reset}"
@@ -23,22 +23,28 @@ print_head(){
   echo ""
 }
 print_info(){
-  white=`tput setaf 7`
-  reset=`tput sgr0`
+  local white=`tput setaf 7`
+  local reset=`tput sgr0`
   echo "${white}INFO: $1${reset}"
   echo "INFO: $1" >> html5gw.log
 }
 print_success(){
-  green=`tput setaf 2`
-  reset=`tput sgr0`
+  local green=`tput setaf 2`
+  local reset=`tput sgr0`
   echo "${green}SUCCESS: $1${reset}"
   echo "SUCCESS: $1" >> html5gw.log
 }
 print_error(){
-  red=`tput setaf 1`
-  reset=`tput sgr0`
+  local red=`tput setaf 1`
+  local reset=`tput sgr0`
   echo "${red}ERROR: $1${reset}"
   echo "ERROR: $1" >> html5gw.log
+}
+print_warning(){
+  local yellow=`tput setaf 3`
+  local reset=`tput sgr0`
+  echo "${yellow}WARNING: $1${reset}"
+  echo "WARNING: $1" >> html5gw.log
 }
 testkey(){
   # Function to list certificates in the keystore and verify keytool imports
@@ -180,19 +186,28 @@ install_tomcat(){
 
 firewall_config(){
   print_head "Step 4: Configuring firewall"
+    
+  local firewalldservice=firewalld
+  print_info "Verifying $firewalldservice is installed"
+  yum list $firewalldservice > /dev/null
+  if [[ $? -eq 0 ]]; then
+    print_success "$firewalldservice is installed" 
+  else
+    print_warning "$firewalldservice is not installed, skipping firewall configuraiton"
+    install_psmgw
+  fi
+
+  print_info "Checking status of $firewalldservice"
+  if [[ `firewall-cmd --state` = "running" ]]; then
+    print_success "$firewalldservice is running"
+  else
+    print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
+  fi
+    
   print_info "configuring Firewall for PSMGW"
   firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
   firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
   firewall-cmd --reload >> html5gw.log
-  
-  print_info "Verifying firewall is running"
-  local firewalldservice=firewalld
-  if [[ $(ps -ef | grep -v grep | grep $firewalldservice | wc -l) > 0 ]]; then
-    print_success "$firewalldservice is running"
-  else
-    print_error "$firewalldservice is not running, exiting now..."
-    exit 1
-  fi
   
   print_info "Gathering active firewall zone information"
   firewall-cmd --get-active-zones >> html5gw.log
