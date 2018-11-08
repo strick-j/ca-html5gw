@@ -40,6 +40,12 @@ print_error(){
   echo "${red}ERROR: $1${reset}"
   echo "ERROR: $1" >> html5gw.log
 }
+print_warning(){
+  local yellow=`tput setaf 3`
+  local reset=`tput sgr0`
+  echo "${yellow}WARNING: $1${reset}"
+  echo "WARNING: $1" >> html5gw.log
+}
 testkey(){
   # Function to list certificates in the keystore and verify keytool imports
   # List keytool and export to file
@@ -180,19 +186,30 @@ install_tomcat(){
 
 firewall_config(){
   print_head "Step 4: Configuring firewall"
-  print_info "configuring Firewall for PSMGW"
-  firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
-  firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
-  firewall-cmd --reload >> html5gw.log
-  
-  print_info "Verifying firewall is running"
+ 
+  local firewalldservice=firewalld
+  print_info "Verifying $firewalldservice is installed"
+  yum list $firewalldservice > /dev/null
+  if [[ $? -eq 0 ]]; then
+    print_success "$firewalldservice is installed"
+  else
+    print_warning "$firewalldservice is not installed, skipping firewall configuration"
+    install_psmgw
+  fi
+
+  print_info "Verifying $firewalldservice is running"
   local firewalldservice=firewalld
   if [[ $(ps -ef | grep -v grep | grep $firewalldservice | wc -l) > 0 ]]; then
     print_success "$firewalldservice is running"
   else
-    print_error "$firewalldservice is not running, exiting now..."
-    exit 1
-  fi
+    print_warning "$firewalldservice is not running, skipping firewall configuration"
+    install_psmgw
+  fi 
+
+  print_info "Configuring Firewall for PSMGW"
+  firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
+  firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
+  firewall-cmd --reload >> html5gw.log
   
   print_info "Gathering active firewall zone information"
   firewall-cmd --get-active-zones >> html5gw.log
