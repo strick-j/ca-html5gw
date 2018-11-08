@@ -189,7 +189,7 @@ firewall_config(){
     
   local firewalldservice=firewalld
   print_info "Verifying $firewalldservice is installed"
-  yum list $firewalldservice > /dev/null
+  yum list installed $firewalldservice > /dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     print_success "$firewalldservice is installed" 
   else
@@ -198,7 +198,7 @@ firewall_config(){
   fi
 
   print_info "Checking status of $firewalldservice"
-  if [[ `firewall-cmd --state` = "running" ]]; then
+  if [[ `systemctl is-active firewalld` = "active" ]]; then
     print_success "$firewalldservice is running"
   else
     print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
