@@ -202,9 +202,11 @@ firewall_config(){
     print_success "$firewalldservice is running"
   else
     print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
+    print_warning "Skipping $firewalldservice configuration"
+    install_psmgw
   fi
     
-  print_info "configuring Firewall for PSMGW"
+  print_info "Configuring Firewall for PSMGW"
   firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
   firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
   firewall-cmd --reload >> html5gw.log
