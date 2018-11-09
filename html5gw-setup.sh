@@ -1,15 +1,15 @@
 #!/bin/bash
 
 function main(){
-  system_prep
-  gather_info
-  install_tomcat
+#  system_prep
+ # gather_info
+  #install_tomcat
   firewall_config
-  install_psmgw
-  update_guacd_config
-  update_guacssl_config
-  generate_guacd_certs
-  restart_services
+  #install_psmgw
+  #update_guacd_config
+  #update_guacssl_config
+  #generate_guacd_certs
+  #restart_services
 }
 
 # Generic output functions
@@ -190,51 +190,80 @@ install_tomcat(){
 
 firewall_config(){
   print_head "Step 4: Configuring firewall"
-    
+  # Verify firewalld is installed, if installed check if enabled, if not enabled prompt to start  
   local firewalldservice=firewalld
   print_info "Verifying $firewalldservice is installed"
   yum list installed $firewalldservice > /dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     print_success "$firewalldservice is installed" 
     print_info "Checking status of $firewalldservice"
-    if [[ `systemctl is-active firewalld` = "active" ]]; then
-      print_success "$firewalldservice is running"
-      print_info "Configuring Firewall for PSMGW"
-      firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
-      firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
-      firewall-cmd --reload >> html5gw.log
-  
-      print_info "Gathering active firewall zone information"
-      firewall-cmd --get-active-zones >> html5gw.log
-      verfirewallcmd=$(tail -2 html5gw.log | head -1)
-  
-      print_info "Active zone is "$verfirewallcmd", gathering forward port information"
-      firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
-      rule1=$(tail -2 html5gw.log | head -1)
-      rule2=$(tail -1 html5gw.log)
-  
-      print_info "Verifying forward ports are correct"
-      # Verify port 443 rules are setup properly, exit if not
-      if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
-        print_success "Port 443 Port Forwarding is correct"
-      else
-        print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
-        exit 1
-      fi
-      # Verify port 80 rules are setup properly, exit if not
-      if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
-        print_success "Port 80 Port Forwarding is correct"
-      else
-        print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
-        exit 1
-      fi
-
-      # Firewall configured properly, print success
-      print_success "Firewall configured"
-    else
-      print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
-      print_warning "Skipping $firewalldservice configuration"
+    if [[ `systemctl is-active firewalld` != "active" ]]; then
+      # Prompt user and start firewalld if they would like
+      local done=0
+      while : ; do
+        print_warning "$firewalldservice is not running, would you like to start it?"
+        select yn in "Yes" "No"; do
+          case $yn in
+            Yes ) 
+              echo ""
+              `systemctl start firewalld` >> html5gw.log 2>&1
+              if [[ `systemctl is-active firewalld` = "active" ]]; then
+                print_success "$firewalldservice started"
+              else
+                print_error "$firewalldservice could not be started, please manually configure"
+              fi
+              done=1
+              break;;
+            No ) 
+              echo ""
+              print_warning "$firewalldservice will not be started"
+              done=1
+              break;;
+          esac
+        done
+        if [[ "$done" -ne 0 ]]; then
+          break
+        fi
+      done
     fi
+      # Verify firewall is running after prompt and configure firewall
+      if  [[ `systemctl is-active firewalld` = "active" ]]; then
+        print_info "Configuring Firewall for PSMGW"
+        firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
+        firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
+        firewall-cmd --reload >> html5gw.log
+  
+        print_info "Gathering active firewall zone information"
+        firewall-cmd --get-active-zones >> html5gw.log
+        verfirewallcmd=$(tail -2 html5gw.log | head -1)
+  
+        print_info "Active zone is "$verfirewallcmd", gathering forward port information"
+        firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
+        rule1=$(tail -2 html5gw.log | head -1)
+        rule2=$(tail -1 html5gw.log)
+  
+        print_info "Verifying forward ports are correct"
+        # Verify port 443 rules are setup properly, exit if not
+        if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
+          print_success "Port 443 Port Forwarding is correct"
+        else
+          print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
+          exit 1
+        fi
+        # Verify port 80 rules are setup properly, exit if not
+        if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
+          print_success "Port 80 Port Forwarding is correct"
+        else
+          print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
+          exit 1
+        fi
+
+        # Firewall configured properly, print success
+        print_success "Firewall configured"
+      else
+        print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
+        print_warning "Skipping $firewalldservice configuration"
+      fi
   else
     print_warning "$firewalldservice is not installed, installing and enabling $firewalldservice is recommended"
     print_warning "Skipping $firewalldservice configuration"
