@@ -1,15 +1,15 @@
 #!/bin/bash
 
 function main(){
-#  system_prep
- # gather_info
-  #install_tomcat
+  system_prep
+  gather_info
+  install_tomcat
   firewall_config
-  #install_psmgw
-  #update_guacd_config
-  #update_guacssl_config
-  #generate_guacd_certs
-  #restart_services
+  install_psmgw
+  update_guacd_config
+  update_guacssl_config
+  generate_guacd_certs
+  restart_services
 }
 
 # Generic output functions
