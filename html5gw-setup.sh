@@ -129,24 +129,24 @@ install_tomcat(){
   sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat >> html5gw.log
   
   print_info "Searching for correct Apache URL"
-  for i in {50..75}
+  for i in {01..75}
   do
-    local test=`curl -Is http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0."$i"/bin/apache-tomcat-8.0."$i".tar.gz | head -n 1`
+    local test=`curl -Is http://www-us.apache.org/dist/tomcat/tomcat-8/v8.5."$i"/bin/apache-tomcat-8.5."$i".tar.gz | head -n 1`
     if [[ $test == *200* ]]; then
-      apacheurl="http://www-us.apache.org/dist/tomcat/tomcat-8/v8.0."$i"/bin/apache-tomcat-8.0."$i".tar.gz"
+      apacheurl="http://www-us.apache.org/dist/tomcat/tomcat-8/v8.5."$i"/bin/apache-tomcat-8.5."$i".tar.gz"
       print_success "URL Found: $apacheurl "
       break
     fi
   done
 
   # Extract tomcat contents
-  print_info "Downloading Apache Tomcat 8.0.$i"
+  print_info "Downloading Apache Tomcat 8.5.$i"
   wget $apacheurl >> html5gw.log 2>&1
 
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
   if [ -f $PWD/apache* ]; then
     print_info "Download succesfull - Installing Now"
-    tar -xzvf apache-tomcat-8.0."$i".tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
+    tar -xzvf apache-tomcat-8.5."$i".tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
   else
     print_error "Apache Tomcat could not be downloaded. Exiting now..."
     exit 1
