@@ -131,9 +131,9 @@ install_tomcat(){
   print_info "Searching for correct Apache URL"
   for i in {01..75}
   do
-    local test=`curl -Is http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz | head -n 1`
+    local test=`curl -Is http://downloads.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz | head -n 1`
     if [[ $test == *200* ]]; then
-      apacheurl="http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz"
+      apacheurl="http://downloads.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz"
       print_success "URL Found: $apacheurl "
       break
     fi
