@@ -131,16 +131,16 @@ install_tomcat(){
   print_info "Searching for correct Apache URL"
   for i in {01..75}
   do
-    local test=`curl -Is http://www-us.apache.org/dist/tomcat/tomcat-8/v8.5."$i"/bin/apache-tomcat-8.5."$i".tar.gz | head -n 1`
+    local test=`curl -Is http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz | head -n 1`
     if [[ $test == *200* ]]; then
-      apacheurl="http://www-us.apache.org/dist/tomcat/tomcat-8/v8.5."$i"/bin/apache-tomcat-8.5."$i".tar.gz"
+      apacheurl="http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz"
       print_success "URL Found: $apacheurl "
       break
     fi
   done
 
   # Extract tomcat contents
-  print_info "Downloading Apache Tomcat 8.5.$i"
+  print_info "Downloading Apache Tomcat 9.0.$i"
   wget $apacheurl >> html5gw.log 2>&1
 
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
