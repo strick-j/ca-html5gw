@@ -87,6 +87,15 @@ system_prep(){
   touch html5gw.log
   yum clean all >> html5gw.log
   echo "Log file generated on $(date)" >> html5gw.log
+
+  print_info "Validating HTMl5GW rpm is present"
+  if [[ $PWD/CARKpsmgw* ]] && [[ $PWD/RPM-GPG-KEY-CyberArk]]; then
+    print_success "Installation rpm and gpg key are present, proceeding..."
+  else
+    print_error "Installation rpm is missing. Exiting..."
+    exit 1
+  fi
+
   print_info "Installing New Packages - This may take some time"
   pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
   for pkg in  ${pkgarray[@]}
@@ -281,8 +290,37 @@ firewall_config(){
   fi
 }
 
+function preinstall_gpgkey() {
+   "Verifying rpm GPG Key is present"
+  if [[ -f ${CYBR_DIR}/RPM-GPG-KEY-CyberArk ]]; then
+    # Import GPG Key
+    write_to_terminal "GPG Key present - Importing..."
+    #TODO: Catch import error
+    rpm --import "INSTALLFILES"/RPM-GPG-KEY-CyberArk
+    write_to_terminal "GPG Key imported, proceeding..."
+  else
+    # Error - File not found
+    write_to_terminal "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi  
+  printf "\n"
+}
+
 install_psmgw(){
   print_head "Step 5: Installing and configuring HTML5 PSMGW"
+  print_info "Verifying rpm GPG Key is present"
+  if [[ -f $PWD/RPM-GPG-KEY-CyberArk ]]; then
+    # Import GPG Key
+    print_info "GPG Key present - Importing..."
+    #TODO: Catch import error
+    rpm --import $PWD/RPM-GPG-KEY-CyberArk
+    print_info "GPG Key imported, proceeding..."
+  else
+    # Error - File not found
+    print_info "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi 
+
   print_info "Verifying PSMGW has been placed within the repository"
   cp psmgwparms /var/tmp/psmgwparms
   # Check if required CyberArk files have been copied into the folder
