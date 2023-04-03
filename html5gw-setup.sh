@@ -87,8 +87,35 @@ system_prep(){
   touch html5gw.log
   yum clean all >> html5gw.log
   echo "Log file generated on $(date)" >> html5gw.log
+
+  print_info "Validating HTMl5GW rpm is present"
+  psmgwrpm=`ls $PWD | grep CARKpsmgw*`
+  if [[ -f $psmgwrpm ]] ; then
+    print_success "Installation rpm is present, proceeding..."
+  else
+    print_error "Installation rpm is not present, please add it to the installation folder. Exiting..."
+    exit 1
+  fi
+
+  if [[ -f $PWD/RPM-GPG-KEY-CyberArk ]] ; then
+    print_success "GPG Key is present, proceeding..."
+  else
+    print_error "GPG Key is not present, please add it to the installation folder. Exiting..."
+    exit 1
+  fi
+
+  local firewalldservice=firewalld
+  print_info "Verifying $firewalldservice is installed"
+  yum list installed $firewalldservice > /dev/null 2>&1
+  if [[ $? -eq 1 ]]; then
+    print_warning "$firewalldservice is not installed. Adding to list of packages to install." 
+    pkgarray=(firewalld cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
+  else 
+    print_info "$firewalldservice is installed. Proceeding..."
+    pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
+  fi 
+
   print_info "Installing New Packages - This may take some time"
-  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
   for pkg in  ${pkgarray[@]}
   do
     pkg="$pkg"
@@ -114,6 +141,60 @@ system_prep(){
 
 gather_info(){
   print_head "Step 2: Collecting user provided information"
+
+  # Prompt for EULA Acceptance
+  print_info "Have you read and accepted the CyberArk EULA?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) print_info "EULA Accepted, proceeding..."; break;;
+      No ) print_info "EULA not accepted, exiting now..."; exit 1;;
+    esac
+  done
+
+  # Prompt for enabling JWT for Security
+  done=0
+  while : ; do
+    print_info "Would you lke to enable JWT for additional security (Yes or No)? "
+    select yn in "Yes" "No"; do
+      case $yn in 
+        Yes ) enablejwt=1; done=1; break;;
+        No ) done=1; break;; 
+      esac
+    done
+    if [[ "$done" -ne 0 ]]; then
+      break
+    fi
+  done
+
+  if [[ $enablejwt -eq "1" ]] ; then
+    done=0
+    while : ; do
+      read -p 'Please enter the hostname of the CyberArk PVWA: ' endpointaddress
+      print_info "You entered $endpointaddress, is this correct (Yes or No)? "
+      select yn in "Yes" "No"; do
+        case $yn in 
+          Yes ) done=1; break;;
+          No ) echo ""; break;; 
+        esac
+      done
+      if [[ "$done" -ne 0 ]]; then
+        break
+      fi
+    done
+    # Update psmgwparms file with userprovided information
+    print_info "Updating psmgwparms file with user provided information"
+    if [[ -f $PWD/psmgwparms ]] ; then
+      sed -i "s+EnableJWTValidation.*+EnableJWTValidation=Yes+g" psmgwparms
+      echo "EndPointAddress=${endpointaddress}" >> psmgwparms
+      print_info "psmgwparms file modified, proceeding..."
+    else
+      # Error - File not found
+      print_error "psmpgwparms file not found, verify needed files have been copied over. Exiting now..."
+      exit 1
+    fi
+  fi
+
+  # Request user provided hostname
   done=0
   while : ; do
     read -p 'Please enter fully qualified domain name or hostname: ' hostvar
@@ -237,44 +318,44 @@ firewall_config(){
         fi
       done
     fi
-      # Verify firewall is running after prompt and configure firewall
-      if  [[ `systemctl is-active firewalld` = "active" ]]; then
-        print_info "Configuring Firewall for PSMGW"
-        firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
-        firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
-        firewall-cmd --reload >> html5gw.log
-  
-        print_info "Gathering active firewall zone information"
-        firewall-cmd --get-active-zones >> html5gw.log
-        verfirewallcmd=$(tail -2 html5gw.log | head -1)
-  
-        print_info "Active zone is "$verfirewallcmd", gathering forward port information"
-        firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
-        rule1=$(tail -2 html5gw.log | head -1)
-        rule2=$(tail -1 html5gw.log)
-  
-        print_info "Verifying forward ports are correct"
-        # Verify port 443 rules are setup properly, exit if not
-        if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
-          print_success "Port 443 Port Forwarding is correct"
-        else
-          print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
-          exit 1
-        fi
-        # Verify port 80 rules are setup properly, exit if not
-        if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
-          print_success "Port 80 Port Forwarding is correct"
-        else
-          print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
-          exit 1
-        fi
+    # Verify firewall is running after prompt and configure firewall
+    if  [[ `systemctl is-active firewalld` = "active" ]]; then
+      print_info "Configuring Firewall for PSMGW"
+      firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
+      firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
+      firewall-cmd --reload >> html5gw.log
 
-        # Firewall configured properly, print success
-        print_success "Firewall configured"
+      print_info "Gathering active firewall zone information"
+      firewall-cmd --get-active-zones >> html5gw.log
+      verfirewallcmd=$(tail -2 html5gw.log | head -1)
+
+      print_info "Active zone is "$verfirewallcmd", gathering forward port information"
+      firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
+      rule1=$(tail -2 html5gw.log | head -1)
+      rule2=$(tail -1 html5gw.log)
+
+      print_info "Verifying forward ports are correct"
+      # Verify port 443 rules are setup properly, exit if not
+      if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
+        print_success "Port 443 Port Forwarding is correct"
       else
-        print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
-        print_warning "Skipping $firewalldservice configuration"
+        print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
+        exit 1
       fi
+      # Verify port 80 rules are setup properly, exit if not
+      if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
+        print_success "Port 80 Port Forwarding is correct"
+      else
+        print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
+        exit 1
+      fi
+
+      # Firewall configured properly, print success
+      print_success "Firewall configured"
+    else
+      print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
+      print_warning "Skipping $firewalldservice configuration"
+    fi
   else
     print_warning "$firewalldservice is not installed, installing and enabling $firewalldservice is recommended"
     print_warning "Skipping $firewalldservice configuration"
@@ -283,11 +364,24 @@ firewall_config(){
 
 install_psmgw(){
   print_head "Step 5: Installing and configuring HTML5 PSMGW"
+  print_info "Verifying rpm GPG Key is present"
+  if [[ -f $PWD/RPM-GPG-KEY-CyberArk ]]; then
+    # Import GPG Key
+    print_info "GPG Key present - Importing..."
+    #TODO: Catch import error
+    rpm --import $PWD/RPM-GPG-KEY-CyberArk
+    print_info "GPG Key imported, proceeding..."
+  else
+    # Error - File not found
+    print_info "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
+    exit 1
+  fi 
+
   print_info "Verifying PSMGW has been placed within the repository"
   cp psmgwparms /var/tmp/psmgwparms
   # Check if required CyberArk files have been copied into the folder
   if [ -f $PWD/CARKpsmgw* ]; then
-    print_info "PSMGW file found, Installing now"
+    print_info "PSMGW file found, installing now"
     cp psmgwparms /var/tmp/psmgwparms
     psmgwrpm=`ls $dir | grep CARKpsmgw*`
     rpm -ivh $psmgwrpm >> html5gw.log 2>&1

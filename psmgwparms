@@ -23,3 +23,8 @@ WebAppsDir=/opt/tomcat/webapps
 # -------------------------------------------------------
 WebApplicationServerUser=tomcat 
 WebApplicationServerGroup=tomcat 
+
+# -------------------------------------------------------
+# Used to enable JWT Validation for security purposes
+# -------------------------------------------------------
+EnableJWTValidation=No
