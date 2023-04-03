@@ -88,7 +88,7 @@ system_prep(){
   yum clean all >> html5gw.log
   echo "Log file generated on $(date)" >> html5gw.log
   print_info "Installing New Packages - This may take some time"
-  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java java-devel openssl)
+  pkgarray=(cairo libpng libjpeg-turbo wget java java-devel openssl)
   for pkg in  ${pkgarray[@]}
   do
     pkg="$pkg"
@@ -139,13 +139,19 @@ install_tomcat(){
   
   print_info "Searching for correct Apache URL"
 
-  # Changed from loop to grep + awk for latest version
-  tomcat_ver=`curl --silent https://downloads.apache.org/tomcat/tomcat-9/ | grep v9 | awk '{split($5,c,">v") ; split(c[2],d,"/") ; print d[1]}' | tail -n 1`
-  validate_url=`curl -Is https://downloads.apache.org/tomcat/tomcat-9/v${tomcat_ver}/bin/apache-tomcat-${tomcat_ver}.tar.gz`
-  if [[ validate_url == *200* ]] ; then
-    apache_url=validate_url
-    print_success "URL Found: $apache_url"
-    break
+  # Specify major version of Tomcat desired
+  wanted_ver=9
+  # Use curl to search for latest minor version of specified major version
+  tomcat_ver=`curl --silent https://downloads.apache.org/tomcat/tomcat-${wanted_ver}/ | grep v${wanted_ver} | awk '{split($5,c,">v") ; split(c[2],d,"/") ; print d[1]}' | tail -n 1`
+  # Create URL based on curl
+  apache_url="https://downloads.apache.org/tomcat/tomcat-${wanted_ver}/v${tomcat_ver}/bin/apache-tomcat-${tomcat_ver}.tar.gz"
+  if [[ `curl -Is ${apache_url}` == *200* ]] ; then
+    print_success "URL Found: ${apache_url}"
+    print_info "Downloading Apache Tomcat ${tomcat_ver}"
+    wget $apache_url >> html5gw.log 2>&1
+  else 
+    print_error "Apache Tomcat could not be downloaded. Exiting now..."
+    exit 1
   fi
 
   # Extract tomcat contents
@@ -154,7 +160,7 @@ install_tomcat(){
 
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
   if [ -f $PWD/apache* ]; then
-    print_info "Download succesfull - Installing Now"
+    print_info "Download succesful - Installing Now"
     tar -xzvf apache-tomcat-${tomcat_ver}.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
   else
     print_error "Apache Tomcat could not be downloaded. Exiting now..."
