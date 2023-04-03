@@ -88,7 +88,7 @@ system_prep(){
   yum clean all >> html5gw.log
   echo "Log file generated on $(date)" >> html5gw.log
   print_info "Installing New Packages - This may take some time"
-  pkgarray=(cairo libpng libjpeg-turbo wget java java-devel openssl)
+  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
   for pkg in  ${pkgarray[@]}
   do
     pkg="$pkg"
