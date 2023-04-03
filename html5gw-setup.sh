@@ -104,8 +104,18 @@ system_prep(){
     exit 1
   fi
 
+  local firewalldservice=firewalld
+  print_info "Verifying $firewalldservice is installed"
+  yum list installed $firewalldservice > /dev/null 2>&1
+  if [[ $? -eq 1 ]]; then
+    print_warning "$firewalldservice is not installed. Adding to list of packages to install." 
+    pkgarray=(firewalld cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
+  else 
+    print_info "$firewalldservice is installed. Proceeding..."
+    pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
+  fi 
+
   print_info "Installing New Packages - This may take some time"
-  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java-1.8.0-openjdk-devel openssl)
   for pkg in  ${pkgarray[@]}
   do
     pkg="$pkg"
@@ -308,64 +318,48 @@ firewall_config(){
         fi
       done
     fi
-      # Verify firewall is running after prompt and configure firewall
-      if  [[ `systemctl is-active firewalld` = "active" ]]; then
-        print_info "Configuring Firewall for PSMGW"
-        firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
-        firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
-        firewall-cmd --reload >> html5gw.log
-  
-        print_info "Gathering active firewall zone information"
-        firewall-cmd --get-active-zones >> html5gw.log
-        verfirewallcmd=$(tail -2 html5gw.log | head -1)
-  
-        print_info "Active zone is "$verfirewallcmd", gathering forward port information"
-        firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
-        rule1=$(tail -2 html5gw.log | head -1)
-        rule2=$(tail -1 html5gw.log)
-  
-        print_info "Verifying forward ports are correct"
-        # Verify port 443 rules are setup properly, exit if not
-        if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
-          print_success "Port 443 Port Forwarding is correct"
-        else
-          print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
-          exit 1
-        fi
-        # Verify port 80 rules are setup properly, exit if not
-        if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
-          print_success "Port 80 Port Forwarding is correct"
-        else
-          print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
-          exit 1
-        fi
+    # Verify firewall is running after prompt and configure firewall
+    if  [[ `systemctl is-active firewalld` = "active" ]]; then
+      print_info "Configuring Firewall for PSMGW"
+      firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toport=8443 >> html5gw.log 2>&1
+      firewall-cmd --permanent --add-forward-port=port=80:proto=tcp:toport=8080 >> html5gw.log 2>&1
+      firewall-cmd --reload >> html5gw.log
 
-        # Firewall configured properly, print success
-        print_success "Firewall configured"
+      print_info "Gathering active firewall zone information"
+      firewall-cmd --get-active-zones >> html5gw.log
+      verfirewallcmd=$(tail -2 html5gw.log | head -1)
+
+      print_info "Active zone is "$verfirewallcmd", gathering forward port information"
+      firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
+      rule1=$(tail -2 html5gw.log | head -1)
+      rule2=$(tail -1 html5gw.log)
+
+      print_info "Verifying forward ports are correct"
+      # Verify port 443 rules are setup properly, exit if not
+      if [[ $rule1 == "port=443:proto=tcp:toport=8443:toaddr="  ]]; then
+        print_success "Port 443 Port Forwarding is correct"
       else
-        print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
-        print_warning "Skipping $firewalldservice configuration"
+        print_error "Port 443 Port Forwarding is not setup properly, exiting now..."
+        exit 1
       fi
+      # Verify port 80 rules are setup properly, exit if not
+      if [[ $rule2 == "port=80:proto=tcp:toport=8080:toaddr=" ]]; then
+        print_success "Port 80 Port Forwarding is correct"
+      else
+        print_error "Port 80 Port Forwarding is not setup properly, exiting now..."
+        exit 1
+      fi
+
+      # Firewall configured properly, print success
+      print_success "Firewall configured"
+    else
+      print_warning "$firewalldservice is not running, enabling $firewalldservice is recommended"
+      print_warning "Skipping $firewalldservice configuration"
+    fi
   else
     print_warning "$firewalldservice is not installed, installing and enabling $firewalldservice is recommended"
     print_warning "Skipping $firewalldservice configuration"
   fi
-}
-
-function preinstall_gpgkey() {
-   "Verifying rpm GPG Key is present"
-  if [[ -f ${CYBR_DIR}/RPM-GPG-KEY-CyberArk ]]; then
-    # Import GPG Key
-    write_to_terminal "GPG Key present - Importing..."
-    #TODO: Catch import error
-    rpm --import "INSTALLFILES"/RPM-GPG-KEY-CyberArk
-    write_to_terminal "GPG Key imported, proceeding..."
-  else
-    # Error - File not found
-    write_to_terminal "RPM GPG Key not found, verify needed files have been copied over. Exiting now..."
-    exit 1
-  fi  
-  printf "\n"
 }
 
 install_psmgw(){
@@ -387,7 +381,7 @@ install_psmgw(){
   cp psmgwparms /var/tmp/psmgwparms
   # Check if required CyberArk files have been copied into the folder
   if [ -f $PWD/CARKpsmgw* ]; then
-    print_info "PSMGW file found, Installing now"
+    print_info "PSMGW file found, installing now"
     cp psmgwparms /var/tmp/psmgwparms
     psmgwrpm=`ls $dir | grep CARKpsmgw*`
     rpm -ivh $psmgwrpm >> html5gw.log 2>&1
