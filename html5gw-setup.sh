@@ -22,30 +22,35 @@ print_head(){
   echo "==========================================================================="
   echo ""
 }
+
 print_info(){
   local white=`tput setaf 7`
   local reset=`tput sgr0`
   echo "${white}INFO: $1${reset}"
   echo "INFO: $1" >> html5gw.log
 }
+
 print_success(){
   local green=`tput setaf 2`
   local reset=`tput sgr0`
   echo "${green}SUCCESS: $1${reset}"
   echo "SUCCESS: $1" >> html5gw.log
 }
+
 print_error(){
   local red=`tput setaf 1`
   local reset=`tput sgr0`
   echo "${red}ERROR: $1${reset}"
   echo "ERROR: $1" >> html5gw.log
 }
+
 print_warning(){
   local yellow=`tput setaf 3`
   local reset=`tput sgr0`
   echo "${yellow}WARNING: $1${reset}"
   echo "WARNING: $1" >> html5gw.log
 }
+
 testkey(){
   # Function to list certificates in the keystore and verify keytool imports
   # List keytool and export to file
@@ -68,9 +73,11 @@ testkey(){
   cat temp.log >> html5gw.log
   rm temp.log
 }
+
 pushd () {
   command pushd "$@" > /dev/null
 }
+
 popd () {
   command popd "$@" > /dev/null
 }
@@ -81,7 +88,7 @@ system_prep(){
   yum clean all >> html5gw.log
   echo "Log file generated on $(date)" >> html5gw.log
   print_info "Installing New Packages - This may take some time"
-  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk openssl)
+  pkgarray=(cairo libpng libjpeg-turbo wget java-1.8.0-openjdk java java-devel openssl)
   for pkg in  ${pkgarray[@]}
   do
     pkg="$pkg"
@@ -104,6 +111,7 @@ system_prep(){
   done
   print_success "Required packages installed."
 }
+
 gather_info(){
   print_head "Step 2: Collecting user provided information"
   done=0
@@ -121,6 +129,7 @@ gather_info(){
     fi
   done
 }
+
 install_tomcat(){
   print_head "Step 3: Installing and configuring Apache Tomcat"
   print_info "Setting up Apache Tomcat user"
@@ -129,24 +138,24 @@ install_tomcat(){
   sudo useradd -s /bin/nologin -g tomcat -d /opt/tomcat tomcat >> html5gw.log
   
   print_info "Searching for correct Apache URL"
-  for i in {01..75}
-  do
-    local test=`curl -Is http://downloads.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz | head -n 1`
-    if [[ $test == *200* ]]; then
-      apacheurl="http://downloads.apache.org/dist/tomcat/tomcat-9/v9.0."$i"/bin/apache-tomcat-9.0."$i".tar.gz"
-      print_success "URL Found: $apacheurl "
-      break
-    fi
-  done
+
+  # Changed from loop to grep + awk for latest version
+  tomcat_ver=`curl --silent https://downloads.apache.org/tomcat/tomcat-9/ | grep v9 | awk '{split($5,c,">v") ; split(c[2],d,"/") ; print d[1]}' | tail -n 1`
+  validate_url=`curl -Is https://downloads.apache.org/tomcat/tomcat-9/v${tomcat_ver}/bin/apache-tomcat-${tomcat_ver}.tar.gz`
+  if [[ validate_url == *200* ]] ; then
+    apache_url=validate_url
+    print_success "URL Found: $apache_url"
+    break
+  fi
 
   # Extract tomcat contents
-  print_info "Downloading Apache Tomcat 9.0.$i"
-  wget $apacheurl >> html5gw.log 2>&1
+  print_info "Downloading Apache Tomcat ${tomcat_ver}"
+  wget $apache_url >> html5gw.log 2>&1
 
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
   if [ -f $PWD/apache* ]; then
     print_info "Download succesfull - Installing Now"
-    tar -xzvf apache-tomcat-8.5."$i".tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
+    tar -xzvf apache-tomcat-${tomcat_ver}.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
   else
     print_error "Apache Tomcat could not be downloaded. Exiting now..."
     exit 1
