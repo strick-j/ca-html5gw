@@ -148,7 +148,7 @@ gather_info(){
     select yn in "Yes" "No"; do
       case $yn in 
         Yes ) enablejwt=1; done=1; break;;
-        No ) echo ""; break;; 
+        No ) done=1; break;; 
       esac
     done
     if [[ "$done" -ne 0 ]]; then
@@ -175,11 +175,11 @@ gather_info(){
     print_info "Updating psmgwparms file with user provided information"
     if [[ -f $PWD/psmgwparms ]] ; then
       sed -i "s+EnableJWTValidation.*+EnableJWTValidation=Yes+g" psmgwparms
-      sed "EndPointAddress=${endpointaddress}"
-      write_to_terminal "psmgwparms file modified, proceeding..."
+      echo "EndPointAddress=${endpointaddress}" >> psmgwparms
+      print_info "psmgwparms file modified, proceeding..."
     else
       # Error - File not found
-      write_to_terminal "psmpgwparms file not found, verify needed files have been copied over. Exiting now..."
+      print_error "psmpgwparms file not found, verify needed files have been copied over. Exiting now..."
       exit 1
     fi
   fi
