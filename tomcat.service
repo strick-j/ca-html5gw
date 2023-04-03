@@ -19,4 +19,4 @@ user=tomcat
 group=tomcat
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target*

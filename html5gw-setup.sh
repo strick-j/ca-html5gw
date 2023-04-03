@@ -89,10 +89,18 @@ system_prep(){
   echo "Log file generated on $(date)" >> html5gw.log
 
   print_info "Validating HTMl5GW rpm is present"
-  if [[ $PWD/CARKpsmgw* ]] && [[ $PWD/RPM-GPG-KEY-CyberArk]]; then
-    print_success "Installation rpm and gpg key are present, proceeding..."
+  psmgwrpm=`ls $PWD | grep CARKpsmgw*`
+  if [[ -f $psmgwrpm ]] ; then
+    print_success "Installation rpm is present, proceeding..."
   else
-    print_error "Installation rpm is missing. Exiting..."
+    print_error "Installation rpm is not present, please add it to the installation folder. Exiting..."
+    exit 1
+  fi
+
+  if [[ -f $PWD/RPM-GPG-KEY-CyberArk ]] ; then
+    print_success "GPG Key is present, proceeding..."
+  else
+    print_error "GPG Key is not present, please add it to the installation folder. Exiting..."
     exit 1
   fi
 
@@ -123,6 +131,60 @@ system_prep(){
 
 gather_info(){
   print_head "Step 2: Collecting user provided information"
+
+  # Prompt for EULA Acceptance
+  write_to_terminal "Have you read and accepted the CyberArk EULA?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes ) write_to_terminal "EULA Accepted, proceeding..."; break;;
+      No ) write_to_terminal "EULA not accepted, exiting now..."; exit 1;;
+    esac
+  done
+
+  # Prompt for enabling JWT for Security
+  done=0
+  while : ; do
+    print_info "Would you lke to enable JWT for additional security (Yes or No)? "
+    select yn in "Yes" "No"; do
+      case $yn in 
+        Yes ) enablejwt=1; done=1; break;;
+        No ) echo ""; break;; 
+      esac
+    done
+    if [[ "$done" -ne 0 ]]; then
+      break
+    fi
+  done
+
+  if [[ $enablejwt -eq "1" ]] ; then
+    done=0
+    while : ; do
+      read -p 'Please enter the hostname of the CyberArk PVWA: ' endpointaddress
+      print_info "You entered $endpointaddress, is this correct (Yes or No)? "
+      select yn in "Yes" "No"; do
+        case $yn in 
+          Yes ) done=1; break;;
+          No ) echo ""; break;; 
+        esac
+      done
+      if [[ "$done" -ne 0 ]]; then
+        break
+      fi
+    done
+    # Update psmgwparms file with userprovided information
+    print_info "Updating psmgwparms file with user provided information"
+    if [[ -f $PWD/psmgwparms ]] ; then
+      sed -i "s+EnableJWTValidation.*+EnableJWTValidation=Yes+g" psmgwparms
+      sed "EndPointAddress=${endpointaddress}"
+      write_to_terminal "psmgwparms file modified, proceeding..."
+    else
+      # Error - File not found
+      write_to_terminal "psmpgwparms file not found, verify needed files have been copied over. Exiting now..."
+      exit 1
+    fi
+  fi
+
+  # Request user provided hostname
   done=0
   while : ; do
     read -p 'Please enter fully qualified domain name or hostname: ' hostvar
