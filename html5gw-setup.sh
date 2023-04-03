@@ -147,20 +147,16 @@ install_tomcat(){
   apache_url="https://downloads.apache.org/tomcat/tomcat-${wanted_ver}/v${tomcat_ver}/bin/apache-tomcat-${tomcat_ver}.tar.gz"
   if [[ `curl -Is ${apache_url}` == *200* ]] ; then
     print_success "URL Found: ${apache_url}"
-    print_info "Downloading Apache Tomcat ${tomcat_ver}"
+    print_info "Downloading Apache Tomcat v${tomcat_ver}"
     wget $apache_url >> html5gw.log 2>&1
   else 
     print_error "Apache Tomcat could not be downloaded. Exiting now..."
     exit 1
   fi
 
-  # Extract tomcat contents
-  print_info "Downloading Apache Tomcat ${tomcat_ver}"
-  wget $apache_url >> html5gw.log 2>&1
-
   # Verify Apache Tomcat tar.gz file was downloaded, if not - Exit
   if [ -f $PWD/apache* ]; then
-    print_info "Download succesful - Installing Now"
+    print_info "Apache Tomcat v${tomcat_ver} download succesful - Installing Now"
     tar -xzvf apache-tomcat-${tomcat_ver}.tar.gz -C /opt/tomcat --strip-components=1 >> html5gw.log
   else
     print_error "Apache Tomcat could not be downloaded. Exiting now..."
