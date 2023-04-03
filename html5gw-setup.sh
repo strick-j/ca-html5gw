@@ -133,11 +133,11 @@ gather_info(){
   print_head "Step 2: Collecting user provided information"
 
   # Prompt for EULA Acceptance
-  write_to_terminal "Have you read and accepted the CyberArk EULA?"
+  print_info "Have you read and accepted the CyberArk EULA?"
   select yn in "Yes" "No"; do
     case $yn in
-      Yes ) write_to_terminal "EULA Accepted, proceeding..."; break;;
-      No ) write_to_terminal "EULA not accepted, exiting now..."; exit 1;;
+      Yes ) print_info "EULA Accepted, proceeding..."; break;;
+      No ) print_info "EULA not accepted, exiting now..."; exit 1;;
     esac
   done
 
