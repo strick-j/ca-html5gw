@@ -330,7 +330,7 @@ firewall_config(){
       verfirewallcmd=$(tail -2 html5gw.log | head -1)
 
       print_info "Active zone is "$verfirewallcmd", gathering forward port information"
-      firewall-cmd --zone="$verfirewllcmd" --list-forward-ports >> html5gw.log
+      firewall-cmd --zone="$verfirewallcmd" --list-forward-ports >> html5gw.log
       rule1=$(tail -2 html5gw.log | head -1)
       rule2=$(tail -1 html5gw.log)
 
